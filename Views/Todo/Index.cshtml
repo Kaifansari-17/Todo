@@ -1,0 +1,76 @@
+﻿@model Todo.Models.Todolist
+@{
+    var list = ViewBag.todo as List<Todo.Models.Todolist>;
+}
+
+<div class="row">
+    <div class="col-lg-8">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Task Name</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in list)
+                {
+                   
+                    <tr >
+
+                        <td>@item.Id</td>
+                        <td><img src="@item.Logo"  style="width:50px;height:50px;border-radius:50%;"/>@item.Name</td>
+                        <td>@item.Status</td>
+                        <td>
+                            <a asp-action="Index" asp-route-id="@item.Id" class="btn btn-primary">Edit</a>
+                            <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-danger">Delete</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="col-lg-4">
+
+        <div class="card">
+            <div class="card-body">
+                <form method="post" asp-action="Index" enctype="multipart/form-data">
+                    <input type="hidden" asp-for="Id" />
+                    <div class="form-group">
+                        <lable>Task Name</lable>
+                        <input asp-for="Name" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <lable>Task Description</lable>
+                        <input asp-for="Des" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <lable>ISCompleted</lable>
+                        <select class="form-control" asp-for="Status">
+                            <option value="In-Process">In-Process</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <lable>Task Logo</lable>
+                        <input asp-for="lf" type="file" class="form-control" />
+                    </div>
+                    <br />
+                    <button type="submit" class="btn btn-success btn-sm float-end">
+                        @(Model.Id == 0 ? "Add Task" : "Update Task")
+                    </button>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
