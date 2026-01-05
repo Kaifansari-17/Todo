@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Azure.Storage.Blobs;
+using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using System.Net.Mail;
 using System.Threading.Tasks;
@@ -10,10 +11,12 @@ namespace TodoControllers
     {
         private readonly TodoDbContext todoDbContext;
         private readonly IWebHostEnvironment _env;
-        public TodoController(TodoDbContext todoDbContext, IWebHostEnvironment _env)
+        private readonly IConfiguration _config;
+        public TodoController(TodoDbContext todoDbContext, IWebHostEnvironment _env,IConfiguration _config)
         {
             this.todoDbContext = todoDbContext;
             this._env = _env;
+            this._config = _config;
         }
 
         public IActionResult Index(int? id)
@@ -86,9 +89,41 @@ namespace TodoControllers
                 }
             }
 
+
+
+            //await todoDbContext.SaveChangesAsync();
+
+
+            string s=await UploadImageAsyncToAzureBlobStorage(todos.lf);
+            todos.Logo = s;
             await todoDbContext.SaveChangesAsync();
             return RedirectToAction("Index");
         }
+
+
+
+        public async Task<string> UploadImageAsyncToAzureBlobStorage(IFormFile file)
+        {
+            string connectionString = _config["AzureBlob:ConnectionString"];
+            string containerName = _config["AzureBlob:ContainerName"];
+
+            var blobServiceClient = new BlobServiceClient(connectionString);
+            var containerClient = blobServiceClient.GetBlobContainerClient(containerName);
+
+            await containerClient.CreateIfNotExistsAsync();
+
+            string fileName = Guid.NewGuid() + Path.GetExtension(file.FileName);
+
+            BlobClient blobClient = containerClient.GetBlobClient(fileName);
+
+            using (var stream = file.OpenReadStream())
+            {
+                await blobClient.UploadAsync(stream, overwrite: true);
+            }
+
+            return blobClient.Uri.ToString();
+        }
+
 
 
         public IActionResult delete(int id) {
