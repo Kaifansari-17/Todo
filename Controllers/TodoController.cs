@@ -9,10 +9,11 @@ namespace TodoControllers
     public class TodoController : Controller
     {
         private readonly TodoDbContext todoDbContext;
-
-        public TodoController(TodoDbContext todoDbContext)
+        private readonly IWebHostEnvironment _env;
+        public TodoController(TodoDbContext todoDbContext, IWebHostEnvironment _env)
         {
             this.todoDbContext = todoDbContext;
+            this._env = _env;
         }
 
         public IActionResult Index(int? id)
@@ -33,26 +34,43 @@ namespace TodoControllers
         public async Task<IActionResult> Index(Todolist todos)
         {
             int i = 0;
+
             if (todos.Id == 0)
             {
-
-                string fp = Path.Combine("logos/", todos.lf.FileName);
-                using(var stream=new FileStream(fp,FileMode.Create))
+                // ✅ Validate file
+                if (todos.lf != null && todos.lf.Length > 0)
                 {
-                    await todos.lf.CopyToAsync(stream);
+                    // ✅ Folder path: wwwroot/logos
+                    string uploadDir = Path.Combine(_env.WebRootPath, "logos");
+
+                    // ✅ Create directory if not exists
+                    if (!Directory.Exists(uploadDir))
+                    {
+                        Directory.CreateDirectory(uploadDir);
+                    }
+
+                    // ✅ Safe filename
+                    string fileName = Path.GetFileName(todos.lf.FileName);
+
+                    // ✅ Full physical path
+                    string filePath = Path.Combine(uploadDir, fileName);
+
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await todos.lf.CopyToAsync(stream);
+                    }
+
+                    // ✅ Base URL
+                    string baseUrl = $"{Request.Scheme}://{Request.Host}";
+
+                    // ✅ Save URL in DB
+                    todos.Logo = $"{baseUrl}/logos/{fileName}";
                 }
 
-                // ✅ Base URL
-                string baseUrl = $"{Request.Scheme}://{Request.Host}";
-
-                // ✅ Set logo URL
-                todos.Logo = $"{baseUrl}/{fp}";
                 // INSERT
                 todoDbContext.Todos.Add(todos);
-
-                var ex = todos;
                 i = 1;
-                SendUpdateMail(ex, i);
+                SendUpdateMail(todos, i);
             }
             else
             {
@@ -63,17 +81,15 @@ namespace TodoControllers
                     ex.Name = todos.Name;
                     ex.Status = todos.Status;
 
-                    // 🔔 Send Mail After Update
-                    
                     i = 2;
-                    SendUpdateMail(ex,i);
+                    SendUpdateMail(ex, i);
                 }
             }
-            
 
-            todoDbContext.SaveChanges();
+            await todoDbContext.SaveChangesAsync();
             return RedirectToAction("Index");
         }
+
 
         public IActionResult delete(int id) {
             int i = 0;
